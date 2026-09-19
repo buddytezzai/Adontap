@@ -1,0 +1,801 @@
+<title>AdMaya.ai</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:ital@1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ Tokens — deliberately single dark world (see rationale in header comment below) ============ */
+  :root{
+    --void:      #14121f;   /* page ground */
+    --surface:   #1c1930;   /* card surface */
+    --surface-2: #24213c;   /* raised surface / hover */
+    --stroke:    #34304f;   /* hairline borders */
+    --stroke-soft: #2a273f;
+    --ink:       #f2ede1;   /* primary text, warm off-white */
+    --ink-dim:   #b8b2c9;   /* secondary text */
+    --ink-faint: #7c7793;   /* tertiary / placeholder */
+    --marigold:  #eaa23a;   /* primary accent — brand */
+    --marigold-ink: #2a1a05;
+    --peacock:   #21a693;   /* secondary accent — success/semantic good */
+    --sindoor:   #e15b64;   /* tertiary accent — live/alert */
+    --violet:    #8b7ff0;   /* quaternary — used only for small data variety */
+    --font-display: "Fraunces", "Iowan Old Style", ui-serif, Georgia, serif;
+    --font-body: "IBM Plex Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  }
+
+  /* This product is built as a single committed dark world — the way video/edit
+     suites (Premiere, CapCut, avatar-render tools) stay dark so on-screen footage
+     reads true. Background and every color below are declared explicitly so the
+     page holds regardless of the viewer's OS theme. */
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--void);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--marigold); color:var(--marigold-ink); }
+
+  h1,h2,h3{ font-family:var(--font-display); text-wrap:balance; margin:0; color:var(--ink); }
+  p{ margin:0; }
+  a{ color:inherit; }
+  button{ font-family:var(--font-body); }
+
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--marigold);
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 32px; }
+  @media (max-width:720px){ .wrap{ padding:0 20px; } }
+
+  /* ============ Top bar ============ */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:rgba(20,18,31,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--stroke-soft);
+  }
+  .topbar-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:32px; height:32px; border-radius:9px;
+    background:linear-gradient(155deg, var(--marigold), var(--sindoor));
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; color:var(--marigold-ink); font-size:16px;
+    flex:none;
+  }
+  .brand-name{ font-family:var(--font-display); font-weight:600; font-size:1.15rem; letter-spacing:.01em; }
+  .brand-name em{ font-style:normal; color:var(--marigold); }
+  .topnav{ display:flex; gap:28px; }
+  .topnav a{
+    font-size:.9rem; color:var(--ink-dim); text-decoration:none; transition:color .15s;
+  }
+  .topnav a:hover{ color:var(--ink); }
+  .cta-btn{
+    background:var(--marigold); color:var(--marigold-ink);
+    border:none; padding:10px 18px; border-radius:8px;
+    font-weight:600; font-size:.88rem; cursor:pointer;
+    transition:transform .12s, box-shadow .12s;
+  }
+  .cta-btn:hover{ transform:translateY(-1px); box-shadow:0 8px 20px -8px rgba(234,162,58,.6); }
+  .cta-btn:focus-visible, a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible{
+    outline:2px solid var(--peacock); outline-offset:2px;
+  }
+  .ghost-btn{
+    background:transparent; color:var(--ink); border:1px solid var(--stroke);
+    padding:9px 16px; border-radius:8px; font-size:.86rem; font-weight:500; cursor:pointer;
+  }
+  .ghost-btn:hover{ border-color:var(--ink-faint); }
+  @media (max-width:820px){ .topnav{ display:none; } }
+
+  /* ============ Hero ============ */
+  .hero{ position:relative; padding:96px 0 72px; overflow:hidden; }
+  .hero-grid{ display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center; }
+  @media (max-width:900px){ .hero-grid{ grid-template-columns:1fr; } }
+
+  .hero h1{ font-size:clamp(2.4rem, 4.4vw, 3.6rem); font-weight:600; line-height:1.06; margin:14px 0 20px; }
+  .hero h1 .accent{ color:var(--marigold); font-style:italic; font-weight:500; }
+  .hero-sub{ font-size:1.08rem; color:var(--ink-dim); max-width:52ch; margin-bottom:32px; }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px; }
+  .hero-stats{ display:flex; gap:32px; flex-wrap:wrap; }
+  .hero-stat b{ display:block; font-family:var(--font-mono); font-size:1.3rem; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .hero-stat span{ font-size:.78rem; color:var(--ink-faint); }
+
+  .hero-panel{
+    background:var(--surface); border:1px solid var(--stroke);
+    border-radius:16px; padding:22px;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.6);
+  }
+  .hero-panel-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--sindoor); display:inline-block; margin-right:6px; animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  canvas#heroWave{ width:100%; height:120px; display:block; border-radius:10px; background:var(--void); }
+  .hero-caption{
+    font-family:var(--font-mono); font-size:.82rem; color:var(--ink-dim);
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--stroke-soft);
+  }
+  .hero-caption .devanagari{ font-family:"Noto Sans Devanagari", var(--font-body); color:var(--ink); }
+
+  /* ============ Section shells ============ */
+  section{ padding:68px 0; border-top:1px solid var(--stroke-soft); }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:34px; flex-wrap:wrap; }
+  .section-head h2{ font-size:1.9rem; font-weight:600; }
+  .section-desc{ color:var(--ink-dim); max-width:56ch; margin-top:8px; }
+
+  /* ============ Logo strip ============ */
+  .logo-strip{ display:flex; gap:36px; flex-wrap:wrap; align-items:center; color:var(--ink-faint); font-family:var(--font-mono); font-size:.82rem; }
+  .logo-chip{ padding:7px 12px; border:1px dashed var(--stroke); border-radius:7px; }
+
+  /* ============ App shell (the product demo) ============ */
+  .console{
+    display:grid; grid-template-columns:230px 1fr; gap:0;
+    border:1px solid var(--stroke); border-radius:16px; overflow:hidden;
+    background:var(--surface);
+  }
+  @media (max-width:860px){ .console{ grid-template-columns:1fr; } }
+
+  .console-nav{ background:var(--void); border-right:1px solid var(--stroke); padding:18px 12px; }
+  @media (max-width:860px){ .console-nav{ border-right:none; border-bottom:1px solid var(--stroke); display:flex; overflow-x:auto; gap:4px; padding:12px; } }
+  .console-nav button{
+    display:flex; align-items:center; gap:10px; width:100%;
+    background:transparent; border:none; color:var(--ink-dim);
+    padding:10px 12px; border-radius:9px; font-size:.9rem; text-align:left;
+    cursor:pointer; margin-bottom:2px; white-space:nowrap; flex:none;
+  }
+  .console-nav button .ic{ width:18px; text-align:center; font-family:var(--font-mono); color:var(--ink-faint); font-size:.82rem; }
+  .console-nav button:hover{ background:var(--surface-2); color:var(--ink); }
+  .console-nav button.active{ background:var(--surface-2); color:var(--ink); box-shadow:inset 3px 0 0 var(--marigold); }
+  .console-nav button.active .ic{ color:var(--marigold); }
+
+  .console-main{ padding:28px 30px 34px; min-height:560px; }
+  .pane{ display:none; }
+  .pane.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+  .pane-head{ margin-bottom:22px; }
+  .pane-head h3{ font-size:1.3rem; font-weight:600; }
+  .pane-head p{ color:var(--ink-dim); font-size:.92rem; margin-top:6px; max-width:58ch; }
+
+  .field-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .field{ display:flex; flex-direction:column; gap:6px; flex:1; min-width:170px; }
+  .field label{ font-size:.76rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); font-family:var(--font-mono); }
+  select, textarea, input[type=text]{
+    background:var(--void); border:1px solid var(--stroke); color:var(--ink);
+    border-radius:8px; padding:10px 12px; font-family:var(--font-body); font-size:.92rem;
+  }
+  textarea{ resize:vertical; min-height:120px; line-height:1.55; }
+
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    border:1px solid var(--stroke); background:var(--void); color:var(--ink-dim);
+    padding:7px 13px; border-radius:999px; font-size:.82rem; cursor:pointer; transition:.15s;
+  }
+  .chip:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .chip.on{ background:var(--marigold); border-color:var(--marigold); color:var(--marigold-ink); font-weight:600; }
+
+  .persona-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin:6px 0 22px; }
+  .persona{
+    border:1px solid var(--stroke); background:var(--void); border-radius:12px; padding:14px;
+    cursor:pointer; transition:.15s; text-align:left;
+  }
+  .persona:hover{ border-color:var(--ink-faint); }
+  .persona.on{ border-color:var(--marigold); background:rgba(234,162,58,.08); }
+  .persona-avatar{
+    width:40px; height:40px; border-radius:50%; margin-bottom:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:600; font-size:.95rem; color:var(--marigold-ink);
+  }
+  .persona-name{ font-weight:600; font-size:.92rem; margin-bottom:2px; }
+  .persona-tag{ font-size:.76rem; color:var(--ink-faint); }
+
+  .gen-btn{
+    background:var(--marigold); color:var(--marigold-ink); border:none;
+    padding:12px 22px; border-radius:9px; font-weight:700; font-size:.92rem; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .gen-btn:hover{ filter:brightness(1.06); }
+  .gen-btn:disabled{ opacity:.55; cursor:progress; }
+
+  .progress-wrap{ margin-top:22px; display:none; }
+  .progress-wrap.show{ display:block; }
+  .progress-label{ display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:.78rem; color:var(--ink-dim); margin-bottom:8px; }
+  .progress-track{ height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--marigold),var(--sindoor)); transition:width .25s linear; }
+
+  .result-card{
+    margin-top:24px; border:1px solid var(--stroke); border-radius:14px; overflow:hidden;
+    display:none; background:var(--void);
+  }
+  .result-card.show{ display:grid; grid-template-columns:200px 1fr; }
+  @media (max-width:640px){ .result-card.show{ grid-template-columns:1fr; } }
+  .result-preview{
+    background:linear-gradient(165deg,#241c3a,#150f22);
+    padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    border-right:1px solid var(--stroke);
+  }
+  @media (max-width:640px){ .result-preview{ border-right:none; border-bottom:1px solid var(--stroke); } }
+  .play-ring{
+    width:52px; height:52px; border-radius:50%; border:1.5px solid var(--marigold);
+    display:flex; align-items:center; justify-content:center; color:var(--marigold); font-size:.95rem;
+  }
+  canvas#resultWave{ width:100%; height:40px; }
+  .result-body{ padding:18px 20px; }
+  .result-body h4{ font-family:var(--font-display); font-size:1.08rem; font-weight:600; margin-bottom:4px; }
+  .result-meta{ font-family:var(--font-mono); font-size:.78rem; color:var(--ink-faint); margin-bottom:14px; }
+  .export-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .export-row button{
+    background:var(--surface-2); border:1px solid var(--stroke); color:var(--ink);
+    padding:8px 13px; border-radius:7px; font-size:.8rem; cursor:pointer;
+  }
+  .export-row button:hover{ border-color:var(--peacock); color:var(--peacock); }
+
+  /* ad variant cards */
+  .ad-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:20px; }
+  .ad-card{ border:1px solid var(--stroke); background:var(--void); border-radius:12px; padding:16px; }
+  .ad-card .tag{ font-family:var(--font-mono); font-size:.7rem; color:var(--peacock); text-transform:uppercase; letter-spacing:.08em; }
+  .ad-card h5{ font-family:var(--font-display); font-size:1.02rem; margin:8px 0 6px; font-weight:600; }
+  .ad-card p{ font-size:.85rem; color:var(--ink-dim); margin-bottom:10px; }
+  .ad-card .cta-pill{ display:inline-block; background:var(--surface-2); color:var(--ink); font-size:.76rem; padding:5px 10px; border-radius:999px; font-family:var(--font-mono); }
+
+  /* workspace clients */
+  .client-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+  .client-card{ border:1px solid var(--stroke); background:var(--void); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .client-top{ display:flex; align-items:center; gap:10px; }
+  .client-badge{ width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; color:var(--void); flex:none; }
+  .client-name{ font-weight:600; font-size:.95rem; }
+  .client-pack{ font-size:.75rem; color:var(--ink-faint); }
+  .client-stats{ display:flex; gap:16px; font-family:var(--font-mono); font-size:.78rem; color:var(--ink-dim); border-top:1px solid var(--stroke-soft); padding-top:10px; }
+  .client-stats b{ color:var(--ink); font-variant-numeric:tabular-nums; display:block; font-size:.95rem; }
+
+  /* pricing */
+  .price-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+  .price-card{ border:1px solid var(--stroke); background:var(--surface); border-radius:14px; padding:22px; display:flex; flex-direction:column; }
+  .price-card.featured{ border-color:var(--marigold); box-shadow:0 0 0 1px var(--marigold) inset; }
+  .price-tier{ font-family:var(--font-mono); font-size:.76rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-faint); margin-bottom:10px; }
+  .price-amount{ font-family:var(--font-display); font-size:2rem; font-weight:600; margin-bottom:4px; }
+  .price-amount span{ font-size:.95rem; color:var(--ink-faint); font-family:var(--font-body); }
+  .price-note{ font-size:.82rem; color:var(--ink-dim); margin-bottom:18px; }
+  .price-list{ list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:9px; font-size:.86rem; color:var(--ink-dim); }
+  .price-list li::before{ content:"—"; color:var(--marigold); margin-right:8px; }
+  .price-card .ghost-btn{ margin-top:auto; text-align:center; }
+
+  footer{ padding:40px 0 60px; }
+  .foot-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; color:var(--ink-faint); font-size:.82rem; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2); border:1px solid var(--stroke); color:var(--ink);
+    padding:12px 18px; border-radius:10px; font-size:.86rem; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:60; box-shadow:0 20px 40px -20px rgba(0,0,0,.6);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div class="brand-name">AdMaya<em>.ai</em></div>
+    </div>
+    <nav class="topnav">
+      <a href="#console">Studio</a>
+      <a href="#workspace">Workspace</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <button class="cta-btn" onclick="document.getElementById('console').scrollIntoView({behavior:'smooth'})">Open studio</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">AI ad generation · AI avatar content</div>
+      <h1>Your voice, in <span class="accent">every language</span> your audience speaks.</h1>
+      <p class="hero-sub">AdMaya.ai turns a script or a product link into avatar-led videos and ready-to-run ad variants — in Hindi, Hinglish and regional languages, with the tone your niche actually needs.</p>
+      <div class="hero-actions">
+        <button class="cta-btn" onclick="document.getElementById('console').scrollIntoView({behavior:'smooth'})">Try the studio</button>
+        <button class="ghost-btn" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">See pricing</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><b>7</b><span>languages &amp; dialects</span></div>
+        <div class="hero-stat"><b>4</b><span>niche content packs</span></div>
+        <div class="hero-stat"><b>₹999</b><span>starting price / mo</span></div>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="hero-panel-top">
+        <span class="eyebrow"><span class="live-dot"></span>rendering preview</span>
+        <span class="eyebrow" style="color:var(--ink-faint)">00:14</span>
+      </div>
+      <canvas id="heroWave" width="600" height="120"></canvas>
+      <div class="hero-caption">
+        <span class="devanagari">"आज हम बात करेंगे मन की शांति के बारे में..."</span><br>
+        auto-captioned · Hindi · lip-sync 98% match
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Built for</div>
+        <h2>The channels agencies actually run</h2>
+      </div>
+    </div>
+    <div class="logo-strip">
+      <span class="logo-chip">Spiritual &amp; devotional</span>
+      <span class="logo-chip">Wellness &amp; mindfulness</span>
+      <span class="logo-chip">Edutainment</span>
+      <span class="logo-chip">Patriotic &amp; culture</span>
+      <span class="logo-chip">D2C &amp; e-commerce</span>
+    </div>
+  </div>
+</section>
+
+<section id="console">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">The studio</div>
+        <h2>From script to shippable video</h2>
+        <p class="section-desc">A working preview of the core AdMaya.ai workflow. Pick a content pack, choose a presenter, and generate — nothing here calls a real render engine yet, but the flow is exactly what ships in v1.</p>
+      </div>
+    </div>
+
+    <div class="console">
+      <div class="console-nav">
+        <button class="nav-btn active" data-pane="avatar"><span class="ic">01</span> Script → Avatar</button>
+        <button class="nav-btn" data-pane="ads"><span class="ic">02</span> Product → Ad</button>
+        <button class="nav-btn" data-pane="studio"><span class="ic">03</span> Avatar &amp; Voice</button>
+        <button class="nav-btn" data-pane="workspace"><span class="ic">04</span> Clients</button>
+      </div>
+
+      <div class="console-main">
+
+        <!-- PANE 1: Script to Avatar -->
+        <div class="pane active" id="pane-avatar">
+          <div class="pane-head">
+            <h3>Script → Avatar Video</h3>
+            <p>Choose a content pack for tone and sample script, pick a language and presenter, then generate.</p>
+          </div>
+
+          <div class="field">
+            <label>Content pack</label>
+            <div class="chip-row" id="packChips">
+              <button class="chip on" data-pack="wellness">Wellness &amp; Mindfulness</button>
+              <button class="chip" data-pack="spiritual">Spiritual &amp; Devotional</button>
+              <button class="chip" data-pack="edu">Edutainment</button>
+              <button class="chip" data-pack="patriotic">Patriotic &amp; Culture</button>
+            </div>
+          </div>
+
+          <div class="field-row" style="margin-top:16px;">
+            <div class="field">
+              <label>Language</label>
+              <select id="langSelect">
+                <option>Hindi</option>
+                <option>Hinglish</option>
+                <option>Tamil</option>
+                <option>Telugu</option>
+                <option>Marathi</option>
+                <option>Bengali</option>
+                <option>English</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Aspect ratio</label>
+              <select id="ratioSelect">
+                <option>9:16 — Reels / Shorts</option>
+                <option>1:1 — Feed</option>
+                <option>16:9 — YouTube</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Script</label>
+            <textarea id="scriptBox"></textarea>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Presenter</label>
+          </div>
+          <div class="persona-grid" id="personaGrid"></div>
+
+          <button class="gen-btn" id="genAvatarBtn">Generate video</button>
+
+          <div class="progress-wrap" id="avatarProgress">
+            <div class="progress-label"><span id="avatarProgressLabel">Analysing script…</span><span id="avatarProgressPct">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="avatarProgressFill"></div></div>
+          </div>
+
+          <div class="result-card" id="avatarResult">
+            <div class="result-preview">
+              <div class="play-ring">▶</div>
+              <canvas id="resultWave" width="200" height="40"></canvas>
+            </div>
+            <div class="result-body">
+              <h4 id="resultTitle">Untitled render</h4>
+              <div class="result-meta" id="resultMeta">00:00 · —</div>
+              <div class="export-row">
+                <button onclick="toast('Queued for Instagram Reels export')">Export · Reels</button>
+                <button onclick="toast('Queued for YouTube Shorts export')">Export · Shorts</button>
+                <button onclick="toast('Caption file (.srt) prepared')">Captions</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 2: Product to Ad -->
+        <div class="pane" id="pane-ads">
+          <div class="pane-head">
+            <h3>Product / Brief → Ad Variants</h3>
+            <p>Describe the offer once — get three ad script variants sized for testing across platforms.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label>Product or offer</label>
+              <input type="text" id="productInput" value="Herbal sleep tea — 14 day trial pack" />
+            </div>
+            <div class="field">
+              <label>Audience</label>
+              <input type="text" id="audienceInput" value="Working professionals, 28–45, stressed sleep" />
+            </div>
+          </div>
+
+          <button class="gen-btn" id="genAdBtn">Generate ad variants</button>
+
+          <div class="progress-wrap" id="adProgress">
+            <div class="progress-label"><span id="adProgressLabel">Drafting hooks…</span><span id="adProgressPct">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="adProgressFill"></div></div>
+          </div>
+
+          <div class="ad-grid" id="adGrid"></div>
+        </div>
+
+        <!-- PANE 3: Avatar & Voice Studio -->
+        <div class="pane" id="pane-studio">
+          <div class="pane-head">
+            <h3>Avatar &amp; Voice Studio</h3>
+            <p>Build a reusable digital presenter once — consent captured up front — and reuse it across every future video.</p>
+          </div>
+          <div class="persona-grid" id="studioGrid"></div>
+          <div style="border:1.5px dashed var(--stroke); border-radius:12px; padding:26px; text-align:center; margin-top:20px; cursor:pointer;" onclick="toast('Uploads are disabled in this preview')">
+            <div style="font-family:var(--font-mono); font-size:.8rem; color:var(--ink-faint);">DROP A 60-SECOND CLIP OR CLICK TO UPLOAD</div>
+            <div style="font-size:.82rem; color:var(--ink-dim); margin-top:6px;">Consent statement is recorded automatically as part of onboarding</div>
+          </div>
+        </div>
+
+        <!-- PANE 4: Workspace -->
+        <div class="pane" id="pane-workspace">
+          <div class="pane-head">
+            <h3>Multi-client workspace</h3>
+            <p>One login, separate brand spaces — assets, avatars and tone-of-voice kept apart per client.</p>
+          </div>
+          <div class="client-grid" id="clientGrid"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="workspace-anchor" style="display:none"></section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Pricing</div>
+        <h2>Priced in rupees, from solo creator to agency</h2>
+      </div>
+    </div>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-amount">₹999<span>/mo</span></div>
+        <div class="price-note">Solo creators testing the workflow</div>
+        <ul class="price-list">
+          <li>~10 avatar videos / month</li>
+          <li>3 languages</li>
+          <li>1 content pack</li>
+        </ul>
+        <button class="ghost-btn" onclick="toast('This is a prototype — no live checkout yet')">Start free trial</button>
+      </div>
+      <div class="price-card featured">
+        <div class="price-tier">Creator Pro</div>
+        <div class="price-amount">₹2,999<span>/mo</span></div>
+        <div class="price-note">Active solo creators &amp; small D2C sellers</div>
+        <ul class="price-list">
+          <li>~40 avatar videos / month</li>
+          <li>All languages &amp; content packs</li>
+          <li>Ad-variant generation</li>
+        </ul>
+        <button class="cta-btn" onclick="toast('This is a prototype — no live checkout yet')">Start free trial</button>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Agency</div>
+        <div class="price-amount">₹9,999<span>+/mo</span></div>
+        <div class="price-note">Agencies running several client brands</div>
+        <ul class="price-list">
+          <li>Multi-client workspaces</li>
+          <li>Pooled render credits</li>
+          <li>Approval workflow</li>
+        </ul>
+        <button class="ghost-btn" onclick="toast('This is a prototype — no live checkout yet')">Talk to us</button>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Enterprise</div>
+        <div class="price-amount">Custom</div>
+        <div class="price-note">D2C &amp; wellness brands at scale</div>
+        <ul class="price-list">
+          <li>Dedicated avatars</li>
+          <li>Compliance &amp; data residency</li>
+          <li>SLA-backed rendering</li>
+        </ul>
+        <button class="ghost-btn" onclick="toast('This is a prototype — no live checkout yet')">Talk to us</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div>AdMaya.ai — a product concept prototype, not a live service.</div>
+    <div>माया · illusion, brought to life</div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- content packs ---------- */
+  const PACKS = {
+    wellness: {
+      script: "आज हम बात करेंगे मन की शांति के बारे में। हर दिन सिर्फ़ पाँच मिनट गहरी साँस लेने से आपका तनाव कम हो सकता है। चलिए, आज से शुरुआत करते हैं...",
+      tone: "calm, unhurried, grounded",
+      duration: "00:38"
+    },
+    spiritual: {
+      script: "जय श्री कृष्णा 🙏 आज की इस पावन सुबह, आइए हम एक साथ मिलकर आज के विचार पर चिंतन करें और अपने दिन की शुरुआत सकारात्मकता के साथ करें...",
+      tone: "warm, devotional, reassuring",
+      duration: "00:45"
+    },
+    edu: {
+      script: "क्या आप जानते हैं कि हमारा दिमाग हर सेकंड लाखों संकेत प्रोसेस करता है? आज हम समझेंगे — बेहद आसान भाषा में — कि यह असल में काम कैसे करता है...",
+      tone: "energetic, curious, clear",
+      duration: "00:52"
+    },
+    patriotic: {
+      script: "हर घर तिरंगा — सिर्फ़ एक नारा नहीं, एक भावना है। आइए आज जानते हैं उन गुमनाम नायकों की कहानी, जिन्होंने इस तिरंगे की शान के लिए सब कुछ न्योछावर कर दिया...",
+      tone: "proud, stirring, respectful",
+      duration: "00:41"
+    }
+  };
+
+  const PERSONAS = [
+    { id:'aarohi', name:'Aarohi', tag:'warm & calm', c1:'#eaa23a', c2:'#e15b64' },
+    { id:'kabir',  name:'Kabir',  tag:'explainer host', c1:'#21a693', c2:'#8b7ff0' },
+    { id:'meera',  name:'Meera',  tag:'devotional narrator', c1:'#e15b64', c2:'#eaa23a' },
+    { id:'rudra',  name:'Rudra',  tag:'energetic, upbeat', c1:'#8b7ff0', c2:'#21a693' },
+  ];
+
+  const CLIENTS = [
+    { name:'Body to Being', pack:'Wellness & Mindfulness', videos:14, c1:'#eaa23a', c2:'#e15b64' },
+    { name:'GyanTV Hindi', pack:'Edutainment', videos:22, c1:'#21a693', c2:'#8b7ff0' },
+    { name:'Mumta Podcast', pack:'Spiritual & Devotional', videos:9, c1:'#e15b64', c2:'#eaa23a' },
+    { name:'Varshha Sangal', pack:'Edutainment', videos:17, c1:'#8b7ff0', c2:'#21a693' },
+  ];
+
+  function grad(c1,c2){ return `linear-gradient(140deg, ${c1}, ${c2})`; }
+  function initials(n){ return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+  /* ---------- render persona pickers ---------- */
+  function personaCard(pnode, selectable){
+    const el = document.createElement('button');
+    el.className = 'persona' + (selectable && pnode.id==='aarohi' ? ' on' : '');
+    el.type = 'button';
+    el.dataset.id = pnode.id;
+    el.innerHTML = `<div class="persona-avatar" style="background:${grad(pnode.c1,pnode.c2)}">${initials(pnode.name)}</div>
+      <div class="persona-name">${pnode.name}</div><div class="persona-tag">${pnode.tag}</div>`;
+    return el;
+  }
+  const personaGrid = document.getElementById('personaGrid');
+  const studioGrid = document.getElementById('studioGrid');
+  PERSONAS.forEach(p=>{
+    personaGrid.appendChild(personaCard(p, true));
+    const s = personaCard(p, false);
+    s.addEventListener('click', ()=>toast(`${p.name} selected as active presenter`));
+    studioGrid.appendChild(s);
+  });
+  let activePersona = 'aarohi';
+  personaGrid.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.persona');
+    if(!btn) return;
+    personaGrid.querySelectorAll('.persona').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    activePersona = btn.dataset.id;
+  });
+
+  /* ---------- content pack chips ---------- */
+  const scriptBox = document.getElementById('scriptBox');
+  let activePack = 'wellness';
+  function loadPack(key){
+    scriptBox.value = PACKS[key].script;
+  }
+  loadPack(activePack);
+  document.getElementById('packChips').addEventListener('click', (e)=>{
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    document.querySelectorAll('#packChips .chip').forEach(c=>c.classList.remove('on'));
+    chip.classList.add('on');
+    activePack = chip.dataset.pack;
+    loadPack(activePack);
+  });
+
+  /* ---------- clients ---------- */
+  const clientGrid = document.getElementById('clientGrid');
+  CLIENTS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'client-card';
+    el.innerHTML = `<div class="client-top">
+        <div class="client-badge" style="background:${grad(c.c1,c.c2)}">${initials(c.name)}</div>
+        <div><div class="client-name">${c.name}</div><div class="client-pack">${c.pack}</div></div>
+      </div>
+      <div class="client-stats"><div><b>${c.videos}</b>videos / mo</div><div><b>Hindi</b>primary lang</div></div>`;
+    clientGrid.appendChild(el);
+  });
+
+  /* ---------- nav switching ---------- */
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('pane-'+btn.dataset.pane).classList.add('active');
+    });
+  });
+
+  /* ---------- toast ---------- */
+  let toastTimer;
+  window.toast = function(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  };
+
+  /* ---------- waveform canvases ---------- */
+  function drawWave(canvas, opts={}){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const bars = opts.bars || 48;
+    const color = opts.color || '#eaa23a';
+    const color2 = opts.color2 || '#e15b64';
+    let phase = 0;
+    function frame(){
+      ctx.clearRect(0,0,w,h);
+      const bw = w / bars;
+      for(let i=0;i<bars;i++){
+        const t = i/bars;
+        const amp = (Math.sin(i*0.55 + phase) * 0.5 + 0.5) * (0.4 + 0.6*Math.sin(t*Math.PI));
+        const barH = Math.max(3, amp * h * 0.85);
+        const grad = ctx.createLinearGradient(0, h-barH, 0, h);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, color2);
+        ctx.fillStyle = grad;
+        const x = i*bw + bw*0.2;
+        ctx.fillRect(x, h-barH, bw*0.6, barH);
+      }
+      phase += reduced ? 0 : 0.09;
+      if(!reduced) requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  drawWave(document.getElementById('heroWave'), { bars:56 });
+
+  /* ---------- generate: avatar video ---------- */
+  const genAvatarBtn = document.getElementById('genAvatarBtn');
+  const avatarProgress = document.getElementById('avatarProgress');
+  const avatarFill = document.getElementById('avatarProgressFill');
+  const avatarLabel = document.getElementById('avatarProgressLabel');
+  const avatarPct = document.getElementById('avatarProgressPct');
+  const avatarResult = document.getElementById('avatarResult');
+  const STAGES = ['Analysing script…','Matching lip-sync…','Rendering frames…','Adding captions…','Finalising…'];
+
+  genAvatarBtn.addEventListener('click', ()=>{
+    genAvatarBtn.disabled = true;
+    avatarResult.classList.remove('show');
+    avatarProgress.classList.add('show');
+    let pct = 0;
+    avatarFill.style.width = '0%';
+    const timer = setInterval(()=>{
+      pct += 4 + Math.random()*8;
+      if(pct >= 100){ pct = 100; clearInterval(timer); }
+      avatarFill.style.width = pct + '%';
+      avatarPct.textContent = Math.round(pct) + '%';
+      avatarLabel.textContent = STAGES[Math.min(STAGES.length-1, Math.floor(pct/100*STAGES.length))];
+      if(pct === 100){
+        setTimeout(()=>{
+          avatarProgress.classList.remove('show');
+          genAvatarBtn.disabled = false;
+          const persona = PERSONAS.find(p=>p.id===activePersona) || PERSONAS[0];
+          document.getElementById('resultTitle').textContent = `${persona.name} · ${activePack[0].toUpperCase()+activePack.slice(1)} pack render`;
+          document.getElementById('resultMeta').textContent = `${PACKS[activePack].duration} · ${document.getElementById('langSelect').value} · ${document.getElementById('ratioSelect').value.split(' — ')[0]}`;
+          avatarResult.classList.add('show');
+          drawWave(document.getElementById('resultWave'), { bars:24, color: persona.c1, color2: persona.c2 });
+        }, 300);
+      }
+    }, 140);
+  });
+
+  /* ---------- generate: ad variants ---------- */
+  const genAdBtn = document.getElementById('genAdBtn');
+  const adProgress = document.getElementById('adProgress');
+  const adFill = document.getElementById('adProgressFill');
+  const adLabel = document.getElementById('adProgressLabel');
+  const adPct = document.getElementById('adProgressPct');
+  const adGrid = document.getElementById('adGrid');
+  const AD_STAGES = ['Drafting hooks…','Writing variants…','Sizing for platforms…'];
+
+  function adVariants(product, audience){
+    return [
+      { tag:'Hook · Pain point', h:'Can’t switch off at night?', b:`${product} is built for exactly this. Ninety seconds, no caffeine crash, no weird aftertaste.`, cta:'Shop the trial pack' },
+      { tag:'Hook · Social proof', h:'The tea our whole office is drinking', b:`${audience} keep reordering this one. See why it’s become the 9pm ritual nobody skips.`, cta:'See what’s inside' },
+      { tag:'Hook · Curiosity', h:'One ingredient does the heavy lifting', b:`We stripped this back to the one herb that actually works — and priced the trial so you can find out for ₹199.`, cta:'Try 14 days' },
+    ];
+  }
+
+  genAdBtn.addEventListener('click', ()=>{
+    genAdBtn.disabled = true;
+    adGrid.innerHTML = '';
+    adProgress.classList.add('show');
+    let pct = 0;
+    const timer = setInterval(()=>{
+      pct += 6 + Math.random()*10;
+      if(pct >= 100){ pct = 100; clearInterval(timer); }
+      adFill.style.width = pct + '%';
+      adPct.textContent = Math.round(pct) + '%';
+      adLabel.textContent = AD_STAGES[Math.min(AD_STAGES.length-1, Math.floor(pct/100*AD_STAGES.length))];
+      if(pct === 100){
+        setTimeout(()=>{
+          adProgress.classList.remove('show');
+          genAdBtn.disabled = false;
+          const product = document.getElementById('productInput').value || 'Your product';
+          const audience = document.getElementById('audienceInput').value || 'Your audience';
+          adVariants(product, audience).forEach(v=>{
+            const card = document.createElement('div');
+            card.className = 'ad-card';
+            card.innerHTML = `<div class="tag">${v.tag}</div><h5>${v.h}</h5><p>${v.b}</p><span class="cta-pill">${v.cta}</span>`;
+            adGrid.appendChild(card);
+          });
+        }, 250);
+      }
+    }, 130);
+  });
+
+})();
+</script>
