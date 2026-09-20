@@ -1,0 +1,95 @@
+// Single source of truth for AdMaya. The /admin routes and the public site both read
+// through src/lib/templates.ts, which is the only module that talks to these models.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Engine {
+  Seedance
+  Higgsfield
+  HeyGen
+  Runway
+  GoogleVeo
+}
+
+enum TemplateStatus {
+  draft
+  published
+  archived
+}
+
+enum VariableType {
+  text
+  textarea
+  select
+}
+
+// Created/edited only from /admin. Never writable from the public site.
+model Template {
+  id              String             @id @default(cuid())
+  title           String
+  category        String
+  icon            String
+  colorFrom       String
+  colorTo         String
+  durationSeconds Int
+  engine          Engine             // cosmetic metadata in this MVP; no provider is called
+  costInr         Int                // ADMIN-ONLY. Never serialised into a public response.
+  priceInr        Int                // sell price before GST
+  gstRate         Float              @default(0.18)
+  status          TemplateStatus     @default(draft)
+  basePrompt      String             // ADMIN-ONLY. Contains {{variableKey}} tokens; used server-side at generation time.
+  variables       TemplateVariable[]
+  generations     Generation[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([status])
+}
+
+model TemplateVariable {
+  id           String       @id @default(cuid())
+  templateId   String
+  template     Template     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  key          String       // referenced as {{key}} inside Template.basePrompt
+  label        String
+  type         VariableType
+  options      Json         @default("[]") // string[]; only meaningful when type = select
+  defaultValue String
+  editable     Boolean      @default(false) // the one flag that decides what a customer may change
+  sortOrder    Int          @default(0)
+
+  @@unique([templateId, key])
+  @@index([templateId, sortOrder])
+}
+
+// Team logins for /admin (simple email + password for the MVP).
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// One row per POST /api/generate. Holds the server-assembled prompt so it can be audited
+// and, later, handed to a real render provider. It is never returned to a browser.
+model Generation {
+  id             String    @id @default(cuid())
+  templateId     String?
+  template       Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateTitle  String
+  submittedValues Json     // exactly what the browser sent, before filtering
+  assembledPrompt String
+  chargeInr      Int       // price before GST
+  gstInr         Int
+  status         String    @default("complete") // TODO: real provider adapter will drive queued/rendering/failed
+  createdAt      DateTime  @default(now())
+
+  @@index([createdAt])
+}

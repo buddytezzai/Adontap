@@ -4,6 +4,7 @@ export const TEMPLATES = [
     title: "Unbox & React",
     cat: "E-commerce · UGC Unboxing",
     icon: "📦",
+    image: "/samples/unbox.jpg",
     c1: "#eaa23a",
     c2: "#e15b64",
     dur: "15s",
@@ -20,6 +21,7 @@ export const TEMPLATES = [
     title: "Before / After Transform",
     cat: "Beauty & Wellness Product",
     icon: "✨",
+    image: "/samples/before-after.jpg",
     c1: "#8b7ff0",
     c2: "#21a693",
     dur: "12s",
@@ -36,6 +38,7 @@ export const TEMPLATES = [
     title: "App Walkthrough",
     cat: "App / SaaS · Screen Demo",
     icon: "📱",
+    image: "/samples/app-demo.jpg",
     c1: "#21a693",
     c2: "#8b7ff0",
     dur: "20s",
@@ -52,6 +55,7 @@ export const TEMPLATES = [
     title: "Founder Talks Straight",
     cat: "D2C Brand · Founder Story",
     icon: "🎤",
+    image: "/samples/founder.jpg",
     c1: "#e15b64",
     c2: "#eaa23a",
     dur: "30s",
@@ -68,6 +72,7 @@ export const TEMPLATES = [
     title: "Customer Review, UGC Style",
     cat: "Testimonial · Social Proof",
     icon: "⭐",
+    image: "/samples/review.jpg",
     c1: "#eaa23a",
     c2: "#8b7ff0",
     dur: "18s",
@@ -84,6 +89,7 @@ export const TEMPLATES = [
     title: "Feature Spotlight",
     cat: "App / SaaS · Feature Highlight",
     icon: "⚡",
+    image: "/samples/feature.jpg",
     c1: "#8b7ff0",
     c2: "#e15b64",
     dur: "15s",
@@ -100,6 +106,7 @@ export const TEMPLATES = [
     title: "Limited-Time Offer Countdown",
     cat: "E-commerce · Promo",
     icon: "⏱️",
+    image: "/samples/offer.jpg",
     c1: "#e15b64",
     c2: "#21a693",
     dur: "10s",
@@ -116,6 +123,7 @@ export const TEMPLATES = [
     title: "Street Interview Reaction",
     cat: "Awareness · Social Proof",
     icon: "🎙️",
+    image: "/samples/street.jpg",
     c1: "#21a693",
     c2: "#eaa23a",
     dur: "22s",
@@ -128,6 +136,7 @@ export const TEMPLATES = [
       "We asked five people to try it on camera for the first time. Here's what actually happened...",
   },
 ];
+
 export const CREDIT_PACKS = [
   {
     tier: "Starter",
@@ -171,10 +180,43 @@ export const CREDIT_PACKS = [
     action: "Talk to us",
   },
 ];
+
 export const RENDER_STAGES = [
-  "Merging your script into the locked template…",
-  "Sending to render engine…",
-  "Rendering frames…",
-  "Stamping watermark…",
-  "Finalising…",
+  "Validating script and authenticating token…",
+  "Merging script into locked template neural weights…",
+  "Sending to AI render engine cluster…",
+  "Synthesizing high-res video frames…",
+  "Applying security watermark overlay…",
+  "Syncing asset into 24-hour repository…",
+];
+
+export const INITIAL_REPOSITORY = [
+  {
+    id: "rep-demo-1",
+    templateId: "unbox",
+    title: "Unbox & React",
+    cat: "E-commerce · UGC Unboxing",
+    image: "/samples/unbox.jpg",
+    dur: "15s",
+    price: 149,
+    engine: "Seedance",
+    script: "Okay so this just landed on my desk and I've been waiting for this all week. Let's open it up together...",
+    createdAt: Date.now() - (2 * 3600 * 1000 + 14 * 60 * 1000), // Generated 2h 14m ago
+    expiresAt: Date.now() + (21 * 3600 * 1000 + 46 * 60 * 1000), // Expires in ~21h 46m
+    isWatermarked: true,
+  },
+  {
+    id: "rep-demo-2",
+    templateId: "before-after",
+    title: "Before / After Transform",
+    cat: "Beauty & Wellness Product",
+    image: "/samples/before-after.jpg",
+    dur: "12s",
+    price: 139,
+    engine: "Higgsfield",
+    script: "Day 1 versus day 14, same light, same angle, zero filters. Here's what changed after using this every night...",
+    createdAt: Date.now() - (21 * 3600 * 1000 + 30 * 60 * 1000), // Generated 21h 30m ago
+    expiresAt: Date.now() + (2 * 3600 * 1000 + 30 * 60 * 1000), // Expires in ~2h 30m (Expiring Soon)
+    isWatermarked: true,
+  }
 ];

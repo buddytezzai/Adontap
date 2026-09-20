@@ -1,0 +1,13 @@
+/* Additions that did not exist in the static prototype. Everything else is admin.css, unchanged. */
+/* the prototype's nav items are <button>s (line-height:normal); ours are <a> so routes are real URLs */
+a.nav-item{ text-decoration:none; line-height:normal; }
+input[type=email], input[type=password]{ background:var(--surface); border:1px solid var(--stroke); color:var(--ink); border-radius:8px; padding:10px 12px; font-size:.88rem; width:100%; }
+input[type=email]:focus, input[type=password]:focus{ outline:2px solid var(--peacock); outline-offset:1px; border-color:transparent; }
+.signout-btn{ margin-left:auto; flex:none; width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid var(--stroke); color:var(--ink-dim); border-radius:7px; }
+.sidebar-foot .who{ min-width:0; }
+.signout-btn:hover{ border-color:var(--ink-faint); color:var(--ink); }
+.btn:disabled{ opacity:.55; cursor:progress; }
+.login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.login-card{ width:min(400px,100%); background:var(--surface); border:1px solid var(--stroke); border-radius:14px; padding:28px; display:flex; flex-direction:column; gap:16px; }
+.login-card .brand{ border-bottom:1px solid var(--stroke-soft); padding:0 0 16px; }
+.login-error{ color:var(--sindoor); font-size:.82rem; min-height:1.2em; }

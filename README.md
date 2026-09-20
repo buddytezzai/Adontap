@@ -1,70 +1,101 @@
-# Getting Started with Create React App
+# AdMaya.ai
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A template-based AI video ad generator for Meta and product promotion. Pick a template, write only the script, pay per video, and get a watermarked render. There is no subscription to Higgsfield, Seedance or any other engine.
 
-## Available Scripts
+> **Status: prototype.** The UI is a working front-end concept. Payment, rendering and the "Send to Meta Ads" / "Export" buttons are simulated. The backend is an early scaffold and is not wired to the front-end yet.
 
-In the project directory, you can run:
+## How it works
 
-### `npm start`
+1. **Pick a template.** There are 8 templates (UGC unboxing, before/after, app walkthrough, founder story, customer review, feature spotlight, limited-time offer, street interview). Each template locks the environment, camera, pacing and render engine.
+2. **Write the script.** The script is the only editable input in the Studio.
+3. **Pay per video.** A price is shown per template (₹129–₹199). Nothing is charged until you confirm.
+4. **Render.** A progress bar walks through the stages, then shows a result card. Every preview carries a tiled "AdMaya.ai" canvas watermark.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The page also has a pricing section with credit packs (Starter, Creator, Agency, Enterprise). The buy buttons only show a "prototype" toast.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Repository layout
 
-### `npm test`
+```
+.
+├── src/                    React front-end (Create React App)
+│   ├── App.jsx             Page composition and toast state
+│   ├── components/         Navbar, Hero, TemplateGallery, Studio,
+│   │                       Pricing, WatermarkCanvas, Toast
+│   └── data/mockData.js    Template definitions (title, price, engine, script…)
+├── public/                 Static assets and index.html
+├── backend/                Express + Firebase Admin scaffold (see below)
+├── vaani_prototype_3.html  Earlier single-file HTML prototype
+├── AdMaya_Technical_Implementation_Plan.pdf
+└── AdMaya_AI_Provider_Integration_Playbook.pdf
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The two PDFs hold the planning material for the real implementation and for integrating the video-generation providers.
 
-### `npm run build`
+## Getting started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Front-end
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Requires Node.js 18+ and npm.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+npm start        # http://localhost:3000
+```
 
-### `npm run eject`
+| Script | What it does |
+| --- | --- |
+| `npm start` | Dev server with hot reload |
+| `npm run build` | Production build into `build/` |
+| `npm test` | Jest and React Testing Library in watch mode |
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+**Stack:** React 19, Create React App (`react-scripts` 5), framer-motion, react-icons, recharts.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Backend (work in progress)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd backend
+npm install
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+The backend uses Express 5, Firebase Admin (ID-token verification), helmet, cors, JWT, bcrypt, Redis, express-rate-limit and morgan. It has no `start` script yet.
 
-## Learn More
+Known gaps to close before it will run:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- `src/app.js` requires `./routes/authRoutes` and `src/server.js` requires `./routes/userRoutes`. Neither route file exists yet.
+- `src/authMiddleware.js` imports `../config/firebase`, but the file lives at `src/firebase.js`. Move it or fix the path.
+- `src/firebase.js` expects a Firebase `serviceAccountKey.json` one level above `src/`. Download it from the Firebase console and **never commit it**. It is not in `.gitignore`, so add it there first.
+- `server.js` and `app.js` both create an Express app. Keep one as the entry point (`server.js` should import `app.js` and call `listen`).
+- The `main` field in `backend/package.json` points to a non-existent `index.js`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Customising templates
 
-### Code Splitting
+Templates are plain objects in [src/data/mockData.js](src/data/mockData.js):
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```js
+{
+  id: "unbox",
+  title: "Unbox & React",
+  cat: "E-commerce · UGC Unboxing",
+  icon: "📦",
+  c1: "#eaa23a", c2: "#e15b64",   // thumbnail gradient
+  dur: "15s",
+  price: 149,                     // ₹ per video
+  engine: "Seedance",
+  env: "…", cam: "…", pace: "…",  // locked template attributes
+  script: "…",                    // default script text
+}
+```
 
-### Analyzing the Bundle Size
+Add an entry to `TEMPLATES` and it appears in the gallery and Studio automatically.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Roadmap
 
-### Making a Progressive Web App
+- Real payments and a credit ledger
+- Connect the front-end to the backend with Firebase auth
+- Real render calls to the video providers (see the Provider Integration Playbook)
+- Server-side watermarking and delivery of clean masters
+- Real "Send to Meta Ads" export
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## License
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+No license file is present. Add one before sharing or accepting contributions.
