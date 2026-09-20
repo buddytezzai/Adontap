@@ -15,6 +15,20 @@ export function rateLimit(key: string, max: number, windowMs: number): { ok: boo
   return { ok: b.count <= max, retryAfterSec: Math.ceil((b.resetAt - now) / 1000) };
 }
 
+/**
+ * The caller's IP, for rate limiting only.
+ *
+ * X-Forwarded-For is client-controlled unless a proxy in front of us overwrites it, so it is only
+ * believed when TRUST_PROXY=true (set that behind Vercel/nginx/Cloudflare, which set the header).
+ * Otherwise every caller shares the bucket "unknown" — a coarse global cap, which is safe (it cannot be
+ * dodged by inventing headers) but shared.
+ */
 export function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  if (process.env.TRUST_PROXY === "true") {
+    const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (forwarded) return forwarded;
+    const real = req.headers.get("x-real-ip")?.trim();
+    if (real) return real;
+  }
+  return "unknown";
 }

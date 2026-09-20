@@ -10,10 +10,17 @@ export const ENGINE_LABEL: Record<Engine, string> = {
   GoogleVeo: "Google Veo",
 };
 
+/** Engines capable of accepting an uploaded reference image for image-conditioned generation */
+export const IMAGE_CAPABLE_ENGINES: readonly Engine[] = ["Higgsfield", "Runway", "Seedance"] as const;
+
+export function engineSupportsImage(engine: Engine): boolean {
+  return IMAGE_CAPABLE_ENGINES.includes(engine);
+}
+
 export const STATUSES = ["draft", "published", "archived"] as const;
 export type TemplateStatus = (typeof STATUSES)[number];
 
-export const VARIABLE_TYPES = ["text", "textarea", "select"] as const;
+export const VARIABLE_TYPES = ["text", "textarea", "select", "image"] as const;
 export type VariableType = (typeof VARIABLE_TYPES)[number];
 
 export interface VariableDTO {
@@ -39,6 +46,7 @@ export interface TemplateInput {
   gstRate: number;
   status: TemplateStatus;
   basePrompt: string;
+  inspiredByScoutedAdId?: string | null;
   variables: VariableDTO[];
 }
 
@@ -49,7 +57,7 @@ export interface AdminTemplate extends TemplateInput {
   updatedAt: string;
 }
 
-/** The public projection: no costInr, no basePrompt, ever. */
+/** The public projection: no costInr, no basePrompt, no inspiredByScoutedAdId, ever. */
 export interface PublicVariable {
   key: string;
   label: string;
@@ -82,6 +90,48 @@ export interface GenerateResult {
   priceInr: number;
   gstInr: number;
   totalInr: number;
+  /** Credits actually taken from the customer's wallet (0 for simulated renders and anonymous visitors). */
+  chargedInr?: number;
+  assetUrl?: string;
+  videoReady?: boolean;
+  videoUrl?: string;
+  expiresAt?: string;
+}
+
+
+export interface ScoutedAdDTO {
+  id: string;
+  advertiserName: string;
+  headline: string;
+  creativeSnapshotUrl: string;
+  category: string;
+  platforms: string[];
+  deliveryStartDate: string;
+  deliveryStopDate: string | null;
+  stillRunning: boolean;
+  approvedForPublic: boolean;
+  voteCount: number;
+  hasUserVoted?: boolean;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+export interface CustomerUserDTO {
+  id: string;
+  email: string;
+  name: string | null;
+  creditBalance: number;
+}
+
+export interface AssetDTO {
+  id: string;
+  type: "upload" | "generated";
+  storageUrl: string;
+  templateTitle?: string;
+  expiresAt: string;
+  expired: boolean;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 export function slugify(s: string): string {

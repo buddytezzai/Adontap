@@ -58,6 +58,7 @@ const text = async (loc) => ((await loc.textContent()) ?? "").replace(/\s+/g, " 
 const pillOf = (p, id) => text(p.locator(`#templateTbody tr[data-id="${id}"] .status-pill`));
 
 const admin = await ctx.newPage();
+let scoutedBefore;
 
 try {
   // ───────────── 0. baseline
@@ -103,15 +104,15 @@ try {
   await admin.locator('.var-row[data-key="camera"] input[data-f="editable"]').check();
   const econ = (await admin.locator("#econOut").innerText()).replace(/\s+/g, " ");
   check("Unit-economics calculator: 200 price / 90 cost", /Margin\s*55%/.test(econ) && /₹110/.test(econ) && /₹36/.test(econ) && /₹236/.test(econ), econ);
-  const preview = await admin.locator("#promptPreview").innerText();
+  const preview = await admin.locator("#previewBubble").innerText();
   check("Live assembled prompt resolves every {{token}}", !preview.includes("{{") && preview.includes("Slow push-in"), preview.slice(0, 90) + "…");
-  const simLabels = await admin.locator("#studioSim .sim-editable-item label").allTextContents();
+  const simLabels = await admin.locator("#simPanel .sim-col:nth-child(2) .sim-row .k").allTextContents();
   check("Studio-simulation shows exactly 2 editable fields (Script, Camera movement)", simLabels.join("|") === "Script|Camera movement", simLabels.join(" + "));
   await admin.locator(".drawer-body").evaluate((el) => (el.scrollTop = 0));
   await shot(admin, "admin-editor-drawer");
   await admin.locator(".drawer-body").evaluate((el) => (el.scrollTop = 900));
   await shot(admin, "admin-editor-drawer-preview");
-  await admin.click("#savePublishBtn");
+  await admin.click("#publishBtn");
   check("Toast confirms it is live", (await waitToast(admin, "is now live")).includes(NAME), "");
   const row = admin.locator("#templateTbody tr", { hasText: NAME });
   const tid = await row.getAttribute("data-id");
@@ -227,7 +228,7 @@ try {
   const newEnv = "Outdoor — urban street";
   await admin.locator('.var-row[data-key="environment"] select[data-f="value"]').selectOption(newEnv);
   await shot(admin, "admin-edit-locked-env");
-  await admin.click("#savePublishBtn");
+  await admin.click("#publishBtn");
   await waitToast(admin, "is now live");
   await publicPage.reload();
   await publicPage.locator(".tmpl-card", { hasText: NAME }).click();
@@ -276,20 +277,31 @@ try {
   await admin.reload(); await admin.waitForSelector("#templateTbody tr");
   check("State survives an admin page reload (persisted, not local)", (await pillOf(admin, tid)) === "archived");
 
-  // ───────────── Ad Intelligence + Overview (kept as prototyped)
-  step("adspy", "Ad Intelligence (mock data) and Overview still work as prototyped");
+  // ───────────── Ad Intelligence (live scouted-ads feed, stub provider) + Overview
+  step("adspy", "Ad Intelligence and Overview");
+  scoutedBefore = (await db.query('select count(*)::int n from "ScoutedAd"')).rows[0].n;
   await admin.click('a[href="/admin/ad-intelligence"]');
-  await admin.waitForSelector(".spy-card");
-  check("Ad Intelligence shows the 6 mock ads", (await admin.locator(".spy-card").count()) === 6);
-  await admin.selectOption("#adspyMinDays", "120");
-  check("'Running 120+ days' filter narrows to the 1 ad running 156 days", (await admin.locator(".spy-card").count()) === 1);
-  await admin.selectOption("#adspyMinDays", "0");
+  await admin.waitForSelector("#view-adspy");
+  if (scoutedBefore === 0) {
+    await admin.waitForFunction(() => document.getElementById("spyGrid")?.textContent.includes("Sync Meta Ads"), null, { timeout: 10000 }).catch(() => {});
+    check("Empty state points to Sync before anything is synced", (await text(admin.locator("#spyGrid"))).includes("Sync Meta Ads"));
+    await admin.click("text=Sync Meta Ads");
+    await admin.waitForSelector(".spy-card", { timeout: 15000 });
+    check("Sync (stub provider) fills the feed", (await admin.locator(".spy-card").count()) >= 5, `${await admin.locator(".spy-card").count()} cards`);
+  } else {
+    await admin.waitForSelector(".spy-card");
+  }
   await shot(admin, "admin-ad-intelligence");
-  await admin.locator(".spy-card", { hasText: "Loopwear" }).locator("[data-action=use-inspiration]").click();
+  const pillBefore = await text(admin.locator(".spy-card .status-pill").first());
+  await admin.locator(".spy-card .status-pill").first().click();
+  await admin.waitForFunction((t) => document.querySelector(".spy-card .status-pill")?.textContent.trim() !== t, pillBefore);
+  check("Approval pill toggles public voting on/off", (await text(admin.locator(".spy-card .status-pill").first())) !== pillBefore, `${pillBefore} → ${await text(admin.locator(".spy-card .status-pill").first())}`);
+  await admin.locator(".spy-card [data-action=use-inspiration]").first().click();
   await admin.waitForSelector(".drawer.open");
-  check("'Use as inspiration' opens the editor pre-filled", (await admin.inputValue("#f_title")) === "POV Scarcity Unboxing" && (await admin.inputValue("#f_baseprompt")).includes("last unit in stock") && (await text(admin.locator("#drawerTitle"))).includes("from Ad Intelligence"));
+  check("'Use as inspiration' opens the editor from Ad Intelligence", (await text(admin.locator("#drawerTitle"))).includes("Ad Intelligence"), await text(admin.locator("#drawerTitle")));
   await admin.click("#drawerCloseBtn");
   await admin.waitForSelector(".drawer.open", { state: "detached" });
+  check("The ✕ button really closes the drawer", (await admin.locator(".drawer.open").count()) === 0);
   await admin.click('a[href="/admin/overview"]');
   await admin.waitForSelector("#engineBreakdown");
   check("Overview shows live stats + margin-by-engine from Postgres", (await admin.locator("#engineBreakdown > div").count()) >= 3 && (await text(admin.locator("#statsRowOverview"))).includes("Total templates"), await text(admin.locator("#engineBreakdown")));
@@ -310,7 +322,7 @@ try {
   await copyRow.locator('[data-action="edit"]').click();
   await admin.waitForSelector(".drawer.open");
   await admin.fill("#f_baseprompt", "Hello {{ghostVariable}} {{script}}");
-  await admin.click("#savePublishBtn");
+  await admin.click("#publishBtn");
   const guardToast = await waitToast(admin, "ghostVariable");
   check("Publishing a prompt with an undefined {{token}} is refused", guardToast.includes("ghostVariable"), guardToast);
   await admin.fill("#f_title", "");
@@ -337,6 +349,9 @@ try {
   await admin.screenshot({ path: path.join(OUT, "ERROR-admin.png") }).catch(() => {});
   await publicPage.screenshot({ path: path.join(OUT, "ERROR-public.png") }).catch(() => {});
 } finally {
+  await db.query('delete from "Template" where title like $1', [NAME + "%"]).catch(() => {});
+  await db.query('delete from "Generation" where "templateTitle" like $1', [NAME + "%"]).catch(() => {});
+  if (typeof scoutedBefore === "number" && scoutedBefore === 0) await db.query('delete from "ScoutedAd"').catch(() => {}); // rows this run synced
   fs.writeFileSync(path.join(OUT, "results.json"), JSON.stringify({ base: BASE, ranAt: new Date().toISOString(), steps }, null, 2));
   await browser.close();
   await db.end();

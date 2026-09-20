@@ -172,38 +172,46 @@ export default function Storefront({
     });
     request.catch(() => {});
 
-    // Same fake progress bar as the prototype.
+    // Progress loop that smoothly advances while waiting for server response
     let p = 0;
-    await new Promise<void>((resolve) => {
-      const timer = setInterval(() => {
-        if (!alive.current) {
-          clearInterval(timer);
-          return resolve();
-        }
-        p += 4 + Math.random() * 8;
-        if (p >= 100) {
-          p = 100;
-          clearInterval(timer);
-          resolve();
-        }
-        setPct(p);
+    let requestFinished = false;
+    const progressTimer = setInterval(() => {
+      if (!alive.current) {
+        clearInterval(progressTimer);
+        return;
+      }
+      if (requestFinished) {
+        setPct(100);
+        setStageLabel("Render complete! Finalizing…");
+        return;
+      }
+      // Advance up to 92% smoothly
+      if (p < 92) {
+        p += Math.max(0.4, (94 - p) * 0.05 + Math.random() * 2);
+        setPct(Math.min(92, p));
         setStageLabel(STAGES[Math.min(STAGES.length - 1, Math.floor((p / 100) * STAGES.length))]);
-      }, 140);
-    });
-    if (!alive.current) return;
+      }
+    }, 180);
 
     try {
       const { status, body } = await request;
+      requestFinished = true;
+      clearInterval(progressTimer);
+      setPct(100);
+      setStageLabel("Render complete! Finalizing…");
+
       if (status !== 200) throw new Error(body.error ?? "Generation failed");
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 400));
       if (!alive.current) return;
       setResult(body);
       setPhase("done");
-      toast(`₹${body.totalInr} charged — video generated`);
+      toast(`₹${body.totalInr} charged — ${body.videoReady ? "AI video generated!" : "render complete!"}`);
     } catch (e) {
+      clearInterval(progressTimer);
       setPhase("idle");
       toast(e instanceof Error ? e.message : "Generation failed");
     }
+
   }
 
   const gstPct = active ? Math.round(active.gstRate * 100) : 0;
@@ -440,26 +448,83 @@ export default function Storefront({
 
                 {phase === "done" && result && (
                   <div className="result-card show" id="genResult">
-                    <div className="result-preview">
-                      <WatermarkCanvas className="result-watermark" id="resultWatermark" />
-                      <div className="phone-play">
-                        <div className="play-ring">▶</div>
-                      </div>
+                    <div className="result-preview" style={{ position: "relative", minHeight: 260, overflow: "hidden", borderRadius: 12, background: "#05050a" }}>
+                      {result.videoUrl || (result.videoReady && result.assetUrl) ? (
+                        <video
+                          src={result.videoUrl || result.assetUrl}
+                          controls
+                          autoPlay
+                          playsInline
+                          loop
+                          style={{ width: "100%", height: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 12 }}
+                        />
+                      ) : (
+                        <div style={{ position: "relative", width: "100%", height: "100%", minHeight: 260 }}>
+                          {result.assetUrl && (
+                            <img
+                              src={result.assetUrl}
+                              alt={result.title}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
+                            />
+                          )}
+                          <WatermarkCanvas className="result-watermark" id="resultWatermark" />
+                          <div className="phone-play">
+                            <div className="play-ring">▶</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="result-body">
-                      <h4 id="resultTitle">{result.title}</h4>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                        <h4 id="resultTitle" style={{ margin: 0 }}>{result.title}</h4>
+                        {result.videoReady ? (
+                          <span style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
+                            ✓ AI Video Generated
+                          </span>
+                        ) : (
+                          <span style={{ background: "rgba(234,162,58,0.15)", color: "#eaa23a", border: "1px solid rgba(234,162,58,0.3)", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                            Sample Preview Frame
+                          </span>
+                        )}
+                      </div>
                       <div className="result-meta" id="resultMeta">
                         {result.durationSeconds}s · ₹{result.totalInr} paid · {ENGINE_LABEL[result.engine]}
                       </div>
                       <div className="watermark-note">
                         <span className="dot">●</span>
                         <span>
-                          Paid render — watermark stays on every preview and export so it can&apos;t be lifted by a screen recording. Clean masters are delivered separately to your ad account on request.
+                          {result.videoReady
+                            ? "Generated with our AI video engine. Retained in your 24-hour repository."
+                            : "Preview only — this is a sample frame. Live AI rendering is available to signed-in accounts with credits."}
                         </span>
                       </div>
-                      <div className="export-row">
-                        <button onClick={() => toast("Queued for Meta Ads Manager upload (watermarked)")}>Send to Meta Ads</button>
-                        <button onClick={() => toast("Exported for Instagram Reels (watermarked)")}>Export · Reels</button>
+                      <div className="export-row" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {result.assetUrl && (
+                          <a
+                            href={result.assetUrl}
+                            download={`${result.title.replace(/\s+/g, "_")}.${result.videoReady ? "mp4" : "jpg"}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              textDecoration: "none",
+                              padding: "8px 16px",
+                              borderRadius: 8,
+                              background: "#eaa23a",
+                              color: "#1a1002",
+                              fontWeight: 700,
+                              fontSize: "0.85rem",
+                              border: "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            📥 Download {result.videoReady ? "MP4 Video" : "Sample Frame"}
+                          </a>
+                        )}
+                        <button onClick={() => toast("Queued for Meta Ads Manager upload")}>Send to Meta Ads</button>
+                        <button onClick={() => toast("Exported for Instagram Reels")}>Export · Reels</button>
                       </div>
                     </div>
                   </div>

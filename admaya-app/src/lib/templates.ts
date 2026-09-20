@@ -42,6 +42,7 @@ function toAdminTemplate(row: AdminRow): AdminTemplate {
     gstRate: row.gstRate,
     status: row.status as TemplateStatus,
     basePrompt: row.basePrompt,
+    inspiredByScoutedAdId: row.inspiredByScoutedAdId,
     variables: row.variables.map(
       (v): VariableDTO => ({
         key: v.key,
@@ -83,6 +84,7 @@ function templateColumns(input: TemplateInput) {
     gstRate: input.gstRate,
     status: input.status,
     basePrompt: input.basePrompt,
+    inspiredByScoutedAdId: input.inspiredByScoutedAdId || null,
   };
 }
 
@@ -239,6 +241,7 @@ export async function getPublishedTemplateForGeneration(id: string) {
 }
 
 export async function recordGeneration(data: {
+  userId?: string | null;
   templateId: string;
   templateTitle: string;
   submittedValues: Record<string, string>;

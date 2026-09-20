@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { unresolvedKeys } from "./prompt";
-import { ENGINES, STATUSES, VARIABLE_TYPES } from "./types";
+import { ENGINES, STATUSES, VARIABLE_TYPES, engineSupportsImage } from "./types";
 
 export const variableSchema = z
   .object({
@@ -15,11 +15,12 @@ export const variableSchema = z
     editable: z.boolean(),
   })
   .superRefine((v, ctx) => {
-    if (v.type !== "select") return;
-    if (v.options.length === 0) {
-      ctx.addIssue({ code: "custom", message: `Dropdown "${v.label}" needs at least one option` });
-    } else if (!v.options.includes(v.defaultValue)) {
-      ctx.addIssue({ code: "custom", message: `Default value of "${v.label}" must be one of its dropdown options` });
+    if (v.type === "select") {
+      if (v.options.length === 0) {
+        ctx.addIssue({ code: "custom", message: `Dropdown "${v.label}" needs at least one option` });
+      } else if (!v.options.includes(v.defaultValue)) {
+        ctx.addIssue({ code: "custom", message: `Default value of "${v.label}" must be one of its dropdown options` });
+      }
     }
   });
 
@@ -39,6 +40,7 @@ export const templateInputSchema = z
     gstRate: z.number().min(0).max(1),
     status: z.enum(STATUSES),
     basePrompt: z.string().max(20_000, "Base prompt is too long"),
+    inspiredByScoutedAdId: z.string().nullish(),
     variables: z.array(variableSchema).max(40, "Too many variables (max 40)"),
   })
   .superRefine((t, ctx) => {
@@ -48,7 +50,17 @@ export const templateInputSchema = z
         ctx.addIssue({ code: "custom", path: ["variables"], message: `Two variables share the key "${v.key}" — rename one of them` });
       }
       seen.add(v.key);
+
+      // Validate engine support for image-upload variables
+      if (v.type === "image" && !engineSupportsImage(t.engine)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["variables"],
+          message: `Engine "${t.engine}" does not support image upload conditioning. Choose Higgsfield, Runway, or Seedance to use image variables.`,
+        });
+      }
     }
+
     // A live template must be able to assemble a complete prompt.
     if (t.status === "published") {
       const missing = unresolvedKeys(t.basePrompt, t.variables.map((v) => v.key));
@@ -70,6 +82,17 @@ export const generateSchema = z.object({
 });
 
 export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(200),
+  password: z.string().min(1).max(200),
+});
+
+export const customerRegisterSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Please enter a valid email address").max(200),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200),
+  name: z.string().trim().max(100).optional(),
+});
+
+export const customerLoginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(200),
   password: z.string().min(1).max(200),
 });

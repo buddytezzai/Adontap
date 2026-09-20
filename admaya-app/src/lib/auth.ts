@@ -5,22 +5,17 @@ import "server-only";
 
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
+import { assertSameOrigin } from "./origin";
+import { readSession, signSession } from "./session";
 
 export const SESSION_COOKIE = "admaya_admin";
 const SESSION_DAYS = 7;
 
 // Compared against when the email is unknown, so "no such user" and "wrong password" take the same time.
 const DUMMY_HASH = bcrypt.hashSync(randomUUID(), 10);
-
-function secret(): Uint8Array {
-  const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 16) throw new Error("SESSION_SECRET must be set to a long random string");
-  return new TextEncoder().encode(s);
-}
 
 export interface AdminSession {
   id: string;
@@ -34,12 +29,7 @@ export async function verifyCredentials(email: string, password: string): Promis
 }
 
 export async function startSession(admin: AdminSession): Promise<void> {
-  const token = await new SignJWT({ email: admin.email })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(admin.id)
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
-    .sign(secret());
+  const token = await signSession("admin", admin.id, admin.email, SESSION_DAYS);
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -57,14 +47,9 @@ export async function endSession(): Promise<void> {
 export async function getAdmin(): Promise<AdminSession | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
-    if (!payload.sub) return null;
-    const user = await prisma.adminUser.findUnique({ where: { id: payload.sub }, select: { id: true, email: true } });
-    return user;
-  } catch {
-    return null;
-  }
+  const sub = await readSession("admin", token);
+  if (!sub) return null;
+  return prisma.adminUser.findUnique({ where: { id: sub }, select: { id: true, email: true } });
 }
 
 /** For server components/layouts under /admin. */
@@ -80,8 +65,9 @@ export async function requireAdminPage(): Promise<AdminSession> {
  */
 export async function requireAdminApi(req: Request): Promise<AdminSession | Response> {
   if (!["GET", "HEAD"].includes(req.method)) {
-    const origin = req.headers.get("origin");
-    if (origin && new URL(origin).host !== req.headers.get("host")) {
+    try {
+      assertSameOrigin(req);
+    } catch {
       return Response.json({ error: "Cross-origin request blocked" }, { status: 403 });
     }
   }

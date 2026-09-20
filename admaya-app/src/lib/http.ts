@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { CrossOriginError } from "./origin";
 import { ConflictError, NotFoundError } from "./templates";
 import { firstIssue } from "./validation";
 
@@ -17,6 +18,8 @@ export async function readJson(req: Request): Promise<unknown> {
 }
 
 export class BadRequestError extends Error {}
+export class UnauthorizedError extends Error {}
+export class TooManyRequestsError extends Error {}
 
 /** Wraps a route handler body and maps known errors to clean JSON responses. */
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
@@ -25,6 +28,9 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
   } catch (e) {
     if (e instanceof ZodError) return json({ error: firstIssue(e) }, 400);
     if (e instanceof BadRequestError) return json({ error: e.message }, 400);
+    if (e instanceof UnauthorizedError) return json({ error: e.message }, 401);
+    if (e instanceof TooManyRequestsError) return json({ error: e.message }, 429);
+    if (e instanceof CrossOriginError) return json({ error: e.message }, 403);
     if (e instanceof NotFoundError) return json({ error: e.message }, 404);
     if (e instanceof ConflictError) return json({ error: e.message }, 409);
     console.error("[api] unhandled error", e);

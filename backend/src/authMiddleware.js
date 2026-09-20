@@ -1,25 +1,20 @@
-const admin = require("../config/firebase");
+const { getAdmin, isConfigured } = require("./firebase");
 
 const verifyToken = async (req, res, next) => {
+  if (!isConfigured()) {
+    return res.status(503).json({ message: "Authentication is not configured on this server" });
+  }
+
+  const [scheme, token] = (req.headers.authorization || "").split(" ");
+  if (scheme !== "Bearer" || !token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({
-        message: "No token provided",
-      });
-    }
-
-    const decodedToken =
-      await admin.auth().verifyIdToken(token);
-
-    req.user = decodedToken;
-
+    req.user = await getAdmin().auth().verifyIdToken(token);
     next();
-  } catch (error) {
-    return res.status(401).json({
-      message: "Unauthorized",
-    });
+  } catch {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };
 

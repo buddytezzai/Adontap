@@ -34,7 +34,8 @@ Production: `npm run build && npm run db:deploy && npm start`. Sign in at `/admi
 | --- | --- |
 | `npm test` | unit tests for the trust-boundary logic (no DB needed) |
 | `npm run typecheck` | `tsc --noEmit` |
-| `node verification/walkthrough.mjs` | the full browser acceptance run (needs Chrome + a running server + the DB) |
+| `node verification/walkthrough.mjs` | the full browser acceptance run (needs Chrome, a running `next start`, and the DB). Start that server with `HIGGSFIELD_API_KEY=""` so a test can never reach a billed provider |
+| `node verification/security-checks.mjs` | attacks each closed hole (free credits, anonymous spend, double-spend race, refund on failed render, upload abuse, forged sessions, rate-limit bypass, CSRF). Starts its own server against a **fake** provider; run `npm run build` first |
 
 ## The public / admin rule, and where it is enforced
 
@@ -59,11 +60,22 @@ The public site renders a real input only for `editable = true` and a read-only 
 `Generation` is an addition to your spec: one row per `/api/generate` call holding the server-assembled prompt, so
 the trust boundary is auditable and a real provider adapter has somewhere to read its input from.
 
+## Accounts, credits and real renders
+
+* **Who can spend provider money:** only a signed-in customer with enough credits, on a Seedance/Higgsfield template, with `HIGGSFIELD_API_KEY` set. Anonymous visitors always get the simulated render and can never cause provider spend.
+* **Charging is atomic and refundable.** Credits are taken in one conditional statement *before* rendering (`UPDATE … WHERE creditBalance >= amount`), so parallel requests can't overspend. If the render fails or times out, the credits are refunded and the customer sees a plain error; provider error text is never sent to the browser.
+* **Credits only come from a verified payment.** There is no payment gateway yet, so the top-up endpoint is disabled (403). For local development only, `ALLOW_DEV_TOPUP=true` enables a capped top-up, and it is ignored in production. New accounts start with `SIGNUP_BONUS_CREDITS` (default **0** — without email verification a bonus is free money).
+* **Sessions:** `SESSION_SECRET` is required (there is no fallback). Admin and customer tokens carry different audiences and can't be swapped.
+* **Uploads** need a signed-in customer, are identified by their bytes (JPEG/PNG/WebP only), get a server-generated name, and live outside `/public` (`UPLOAD_DIR`, default `./.uploads`), served only to their owner via `/api/uploads/[name]`.
+* **24-hour retention** is enforced by `POST /api/cron/cleanup` with `Authorization: Bearer $CRON_SECRET`. Nothing schedules it for you: add a Vercel Cron / crontab / GitHub Action.
+* **Rate limiting** trusts `X-Forwarded-For` only when `TRUST_PROXY=true`. Set that behind Vercel/nginx/Cloudflare; without it all callers share one coarse bucket. Login is additionally limited per account.
+
 ## Deliberately stubbed (search for `TODO`)
 
-* **Render providers** — `/api/generate` waits ~700 ms and returns success (`// TODO: swap in real provider adapter here`). `engine` is display metadata only.
-* **Payment** — the charge is simulated; the server does compute the authoritative amount (`price + GST`) from the database.
-* **Meta Ad Library** — Ad Intelligence is the same static mock data as the prototype.
+* **Render providers** — only Seedance/Higgsfield have an adapter (`src/lib/higgsfield.ts`). HeyGen / Runway / Google Veo, and any run without a key, use the simulated render. The provider only renders 5 or 10 seconds, so longer templates render at 10s and the result reports the real length. The render is still awaited inside the request (≤5 min); it should become a queued job the client polls.
+* **Payment** — no gateway yet (see above). The server computes the authoritative amount (`price + GST`) from the database.
+* **Meta Ad Library** — `syncScoutedAds()` uses a stub provider; the live adapter throws "not implemented" instead of silently syncing nothing.
+* **Image variables** — the admin can define them, but the storefront has no uploader for them yet.
 
 ## Where this differs from the prototypes (all intentional)
 

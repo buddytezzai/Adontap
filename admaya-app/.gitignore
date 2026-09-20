@@ -1,5 +1,7 @@
 /node_modules
 /.next
+/.uploads
+/public/uploads
 /out
 /src/generated
 /verification/output

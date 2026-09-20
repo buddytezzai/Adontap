@@ -28,27 +28,37 @@ enum VariableType {
   text
   textarea
   select
+  image
+}
+
+enum AssetType {
+  upload
+  generated
 }
 
 // Created/edited only from /admin. Never writable from the public site.
 model Template {
-  id              String             @id @default(cuid())
-  title           String
-  category        String
-  icon            String
-  colorFrom       String
-  colorTo         String
-  durationSeconds Int
-  engine          Engine             // cosmetic metadata in this MVP; no provider is called
-  costInr         Int                // ADMIN-ONLY. Never serialised into a public response.
-  priceInr        Int                // sell price before GST
-  gstRate         Float              @default(0.18)
-  status          TemplateStatus     @default(draft)
-  basePrompt      String             // ADMIN-ONLY. Contains {{variableKey}} tokens; used server-side at generation time.
-  variables       TemplateVariable[]
-  generations     Generation[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id                     String             @id @default(cuid())
+  title                  String
+  category               String
+  icon                   String
+  colorFrom              String
+  colorTo                String
+  durationSeconds        Int
+  engine                 Engine             // cosmetic metadata in this MVP; real adapter dispatched
+  costInr                Int                // ADMIN-ONLY. Never serialised into a public response.
+  priceInr               Int                // sell price before GST
+  gstRate                Float              @default(0.18)
+  status                 TemplateStatus     @default(draft)
+  basePrompt             String             // ADMIN-ONLY. Contains {{variableKey}} tokens; used server-side at generation time.
+  inspiredByScoutedAdId  String?            // ADMIN-ONLY. Traceability to customer-voted ad.
+  inspiredByScoutedAd    ScoutedAd?         @relation(fields: [inspiredByScoutedAdId], references: [id], onDelete: SetNull)
+  variables              TemplateVariable[]
+  generations            Generation[]
+  assets                 Asset[]
+  orders                 Order[]
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   @@index([status])
 }
@@ -77,19 +87,106 @@ model AdminUser {
   createdAt    DateTime @default(now())
 }
 
-// One row per POST /api/generate. Holds the server-assembled prompt so it can be audited
-// and, later, handed to a real render provider. It is never returned to a browser.
+// Customer / brand account (separate from AdminUser).
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  passwordHash  String
+  name          String?
+  creditBalance Int          @default(500) // free starter credits for trial
+  votes         Vote[]
+  assets        Asset[]
+  orders        Order[]
+  generations   Generation[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([email])
+}
+
+// Scouted ads from Meta Ad Library scraper + customer votes
+model ScoutedAd {
+  id                  String     @id @default(cuid())
+  advertiserName      String
+  headline            String
+  creativeSnapshotUrl String
+  category            String
+  platforms           Json       @default("[\"facebook\", \"instagram\"]") // string[]
+  deliveryStartDate   DateTime
+  deliveryStopDate    DateTime?
+  approvedForPublic   Boolean    @default(false) // admin curation gate
+  firstSeenAt         DateTime   @default(now())
+  lastSeenAt          DateTime   @default(now())
+  votes               Vote[]
+  templates           Template[]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([approvedForPublic, category])
+}
+
+// Votes for scouted ads (1 vote per user per ad)
+model Vote {
+  id          String    @id @default(cuid())
+  scoutedAdId String
+  scoutedAd   ScoutedAd @relation(fields: [scoutedAdId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([scoutedAdId, userId])
+  @@index([scoutedAdId])
+}
+
+// Customer assets (uploaded images & generated videos) with 24-hour retention
+model Asset {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId  String?
+  template    Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  type        AssetType
+  storageUrl  String
+  metadata    Json      @default("{}") // extra fields (duration, width, height, etc)
+  expiresAt   DateTime  // 24 hours after creation
+  expired     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, expired, expiresAt])
+  @@index([expiresAt])
+}
+
+// Customer orders / generation ledger
+model Order {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId      String
+  template        Template  @relation(fields: [templateId], references: [id])
+  amountPaidInr   Int
+  submittedValues Json      // exactly what customer submitted
+  refundEligible  Boolean   @default(false) // stubbed placeholder
+  status          String    @default("completed")
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// One row per POST /api/generate. Holds server-assembled prompt for audit & provider dispatch
 model Generation {
-  id             String    @id @default(cuid())
-  templateId     String?
-  template       Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  templateTitle  String
-  submittedValues Json     // exactly what the browser sent, before filtering
+  id              String    @id @default(cuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  templateId      String?
+  template        Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateTitle   String
+  submittedValues Json      // exactly what the browser sent, before filtering
   assembledPrompt String
-  chargeInr      Int       // price before GST
-  gstInr         Int
-  status         String    @default("complete") // TODO: real provider adapter will drive queued/rendering/failed
-  createdAt      DateTime  @default(now())
+  chargeInr       Int       // price before GST
+  gstInr          Int
+  status          String    @default("complete")
+  createdAt       DateTime  @default(now())
 
   @@index([createdAt])
+  @@index([userId])
 }
