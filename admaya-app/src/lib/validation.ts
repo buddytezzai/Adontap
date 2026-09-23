@@ -97,6 +97,16 @@ export const customerLoginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const adjustCreditsSchema = z.object({
+  amount: z.number().int("Amount must be a whole number").refine((n) => n !== 0, "Amount can't be 0").refine((n) => Math.abs(n) <= 1_000_000, "Amount is too large"),
+  reason: z.string().trim().min(3, "Give a short reason (3+ characters)").max(200),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(10, "New password must be at least 10 characters").max(200),
+});
+
 export function firstIssue(err: z.ZodError): string {
   const issue = err.issues[0];
   return issue?.message ?? "Invalid request";

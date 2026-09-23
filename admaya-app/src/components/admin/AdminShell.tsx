@@ -51,6 +51,7 @@ function Sidebar() {
         {item("/admin/orders", "⎘", "Orders & Renders")}
         {item("/admin/wallets", "⛁", "Credit Wallets")}
         {item("/admin/provider-keys", "⚙", "Provider Keys")}
+        {item("/admin/account", "👤", "Account")}
       </div>
 
       <div className="sidebar-foot">

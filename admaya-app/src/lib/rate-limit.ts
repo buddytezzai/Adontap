@@ -15,6 +15,11 @@ export function rateLimit(key: string, max: number, windowMs: number): { ok: boo
   return { ok: b.count <= max, retryAfterSec: Math.ceil((b.resetAt - now) / 1000) };
 }
 
+/** Forget a key's count. Used after a successful login so only FAILED attempts add up toward a lockout. */
+export function resetRateLimit(key: string): void {
+  buckets.delete(key);
+}
+
 /**
  * The caller's IP, for rate limiting only.
  *

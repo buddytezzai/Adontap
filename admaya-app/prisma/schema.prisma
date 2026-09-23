@@ -98,6 +98,7 @@ model User {
   assets        Asset[]
   orders        Order[]
   generations   Generation[]
+  creditAdjustments CreditAdjustment[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -189,4 +190,18 @@ model Generation {
 
   @@index([createdAt])
   @@index([userId])
+}
+
+// Every manual wallet change made from /admin, so credits never move without a trace.
+model CreditAdjustment {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int      // signed: positive = credits added, negative = removed
+  balanceAfter Int
+  reason       String
+  adminEmail   String
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

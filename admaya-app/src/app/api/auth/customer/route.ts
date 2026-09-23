@@ -9,7 +9,7 @@ import {
 } from "@/lib/customer-auth";
 import { BadRequestError, handle, json, readJson, TooManyRequestsError, UnauthorizedError } from "@/lib/http";
 import { assertSameOrigin } from "@/lib/origin";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { customerLoginSchema, customerRegisterSchema, firstIssue } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -46,11 +46,13 @@ export function POST(req: Request) {
         const parsed = customerLoginSchema.safeParse(body);
         if (!parsed.success) throw new BadRequestError(firstIssue(parsed.error));
         const { email, password } = parsed.data;
-        if (!rateLimit(`clogin:${ip}:${email}`, 10, 10 * 60_000).ok || !rateLimit(`clogin-acct:${email}`, 20, 10 * 60_000).ok) {
+        const keys = [`clogin:${ip}:${email}`, `clogin-acct:${email}`];
+        if (!rateLimit(keys[0], 10, 10 * 60_000).ok || !rateLimit(keys[1], 20, 10 * 60_000).ok) {
           throw new TooManyRequestsError("Too many attempts. Try again in a few minutes.");
         }
         const user = await verifyCustomerCredentials(email, password);
         if (!user) throw new UnauthorizedError("Invalid email or password");
+        keys.forEach(resetRateLimit);
         await startCustomerSession({ id: user.id, email: user.email });
         return json({ ok: true, user });
       }

@@ -37,3 +37,10 @@ input[type=email]:focus, input[type=password]:focus{ outline:2px solid var(--pea
 .btn-secondary:disabled{ opacity:.55; cursor:progress; }
 .status-pill.pill-published{ background:rgba(33,166,147,.12); color:var(--peacock); border-color:rgba(33,166,147,.35); }
 .status-pill.pill-draft{ background:rgba(124,119,147,.12); color:var(--ink-faint); border-color:var(--stroke); }
+
+/* ── Operations pages (orders, wallets, provider status) ── */
+.status-pill.static{ cursor:default; }
+.inline-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:4px 0; }
+.inline-form input{ width:auto; }
+details.prompt-details summary{ cursor:pointer; color:var(--marigold); font-size:.8rem; }
+details.prompt-details .prompt-preview{ margin-top:8px; font-size:.74rem; min-height:0; max-height:220px; overflow:auto; }

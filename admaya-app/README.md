@@ -35,7 +35,23 @@ Production: `npm run build && npm run db:deploy && npm start`. Sign in at `/admi
 | `npm test` | unit tests for the trust-boundary logic (no DB needed) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `node verification/walkthrough.mjs` | the full browser acceptance run (needs Chrome, a running `next start`, and the DB). Start that server with `HIGGSFIELD_API_KEY=""` so a test can never reach a billed provider |
+| `node verification/dashboard-checks.mjs` | browser checks for the admin Orders, Credit Wallets, Provider Keys and Account pages (needs a running server + DB) |
+| `npm run admin:set -- <email> "<password>"` | create an admin login, or reset its password (10+ characters) |
 | `node verification/security-checks.mjs` | attacks each closed hole (free credits, anonymous spend, double-spend race, refund on failed render, upload abuse, forged sessions, rate-limit bypass, CSRF). Starts its own server against a **fake** provider; run `npm run build` first |
+
+## The admin dashboard (`/admin`)
+
+| Page | What it does |
+| --- | --- |
+| All Templates / New Template | create, edit, publish, duplicate, archive and delete templates; changes are live on the site on the next load |
+| Ad Intelligence | scouted-ads feed with public-voting curation (stub data until the live Meta adapter exists) |
+| Overview | portfolio stats and margin by engine |
+| Orders & Renders | every generation: who, what it cost, status, and the exact prompt the server assembled |
+| Credit Wallets | customer balances; add or remove credits with a required reason — each change is saved to the `CreditAdjustment` audit table with the admin's email, and a removal can never take a balance below 0 |
+| Provider Keys | read-only status of integrations and safeguards. It never shows secret values: keys stay in `.env` |
+| Account | change your password (10+ characters) |
+
+Sign-in is email + password. Use `npm run admin:set` to add another admin or reset a forgotten password.
 
 ## The public / admin rule, and where it is enforced
 
